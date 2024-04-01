@@ -3,22 +3,28 @@
 
 [Website](https://simple-keylogger.github.io) - [Keylogger wiki](https://github.com/GiacomoLaw/Keylogger/wiki)
 
+Help support the project:
+
+<a href="https://www.buymeacoffee.com/giacomo" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee" style="height: auto !important;width: auto !important;" ></a>
+
 Welcome to the simple keylogger repo! A keylogger is a program that records your keystrokes, and this program saves them in a log file on your local computer.
 
-Check out below to learn how to install them. These keyloggers are simple and bare bones, however they work great! Feel free to fork and improve it if you want. Be sure to check out the [pull requests](https://github.com/GiacomoLaw/Keylogger/pulls) to see if your problem has been fixed, or to help out others.
+Check out below to learn how to install them. These keyloggers are simple and bare bones, however they work great! Feel free to fork and improve it if you want. Be sure to check out the [issues](https://github.com/GiacomoLaw/Keylogger/issues) or [pull requests](https://github.com/GiacomoLaw/Keylogger/pulls) to see if your problem has been fixed, or to help out others.
 
 Currently, there are three keylogger programs for the major operating systems; Windows, Mac and Linux.
 
 > Looking to make a fix or change on the website? You can find the website repo [here](https://github.com/simple-keylogger/simple-keylogger.github.io).
 
 ## Contents
-- [Windows installation guide](https://simple-keylogger.github.io/windows.html)
-- [Mac installation guide](https://simple-keylogger.github.io/mac.html)
-- [Linux installation guide](https://simple-keylogger.github.io/linux.html)
+- [Windows installation guide](https://github.com/GiacomoLaw/Keylogger/blob/master/windows/README.md)
+- [Mac installation guide](https://github.com/GiacomoLaw/Keylogger/blob/master/mac/README.md)
+- [Linux installation guide](https://github.com/GiacomoLaw/Keylogger/blob/master/linux/README.md)
 - [Check out the site for more information](https://simple-keylogger.github.io/)
 
+Or, view the `README.md` file in each programs folder for more up to date information.
+
 ## Windows
-To change visibility of the window set the `#define` in line 9 to `visible` or `invisible`.
+To change visibility of the window set the `#define` in line 13 to `visible` or `invisible`.
 
 Simply compile into an .exe, and then run. Visual Studio is good for this.
 
@@ -27,81 +33,49 @@ Simply compile into an .exe, and then run. Visual Studio is good for this.
 
 Both of these save the keystrokes to a .txt file when closed.
 
-> Note that sometimes your compiler may through up errors. If it does, keep compiling - the program still works. As always, please create an issue if you have a problem.
+> Note that sometimes your compiler may throw up errors. If it does, keep compiling - the program still works. Please check issues and discussions if you have a problem.
+
+[@mydarkthawts](https://github.com/mydarkthawts) has an [excellent comment with a guide and a video on how to compile this here](https://github.com/GiacomoLaw/Keylogger/issues/80#issuecomment-1925503134).
 
 ## Mac
-This is a little more complicated. Please note, it does not work for secure areas such as password inputs. I have not found a work around yet.
-
-### Installation
-Download the repo. It will install in `/usr/local/bin/keylogger`.
-
-Install it:
-
-`$ git clone https://github.com/GiacomoLaw/Keylogger && cd keylogger/mac`
-
-`$ make && make install`
-
-It will log to `/var/log/keystroke.log`. This may require root access, but you can change that if you want. Set where you want it to log:
-
-`$ keylogger ~/logfile.txt`
-
-`Logging to: /var/log/keystroke.log`
-
-Want to make it start on system startup?
-
-`$ sudo make startup`
-
-That will run it on startup.
-
-### Uninstall
-`$ sudo make uninstall`
-
-Will uninstall the program, but not the logs.
-
----
-
-Thanks to [Casey Scarborough](https://github.com/caseyscarborough/keylogger) for the base program!
-
-> Please note that this logger cannot record keystrokes in protected areas yet.
+See [Casey Scarborough](https://github.com/caseyscarborough/keylogger).
 
 ## Linux
-### Installation
 
-First, install the keylogger:
-
-`pip install keylogger`
-
-and there are several options that can be set with environment variables:
-
-* `--log-file output.og`: File path to use as the log file.  Default is current directory.
-* `--cancel-key`: The key that uses as the cancel key, default is '`'.
-* `--clean-log`: clean the log file first, default is No.
-
-### How to run it?
-
-To run it just type `keylogger` and it'll run:
+### Usage
 ```
-keylogger --log-file keylogger.log 
-RECORD extension version 1.13
+  pip install -r requirements. txt
+  keylogger.py
 ```
 
-The keylogger is now running! It will log your strokes to the file you
-specified. Stop it by hitting the cancel key (grave or \`, if not set with
-`--cancel-key`. That's the one under escape on a standard keyboard.)
+## How to run it
 
-You can make it run on startup:
+By running `nohup python3 keylogger.py &` command, it'll start to log your strokes:
+The meaning of nohup is ‘no hangup‘.
+When nohup command use with ‘&’ then it doesn’t return to shell command prompt after running the command in the background. 
+```
+$~/Keylogger/linux$ nohup python3 keylogger.py &
+[1] 12529 //this is the keylogger's PID (process ID)
+$:~/Keylogger/linux$ fg
 
-`$ sudo make startup`
+```
+
+The Keylogger is now running! It will log your strokes to a file .
+Stop it by typing the command `fg` then hitting `CTRL+C`
+
+or
+
+`kill {PID}` for example `kill 12529`
+
+
+---
 
 ---
 #### Uses
 
 Some uses of a keylogger are:
 
-- Business Administration: Monitor what employees are doing.
-- School/Institutions: Track keystrokes and log banned words in a file.
 - Personal Control and File Backup: Make sure no one is using your computer when you are away.
-- Parental Control: Track what your children are doing.
 - Self analysis
 
 ---
@@ -113,9 +87,3 @@ Please note, this repo is for educational purposes only. No contributors, major 
 Don't really understand licenses or tl;dr? Check out the [MIT license summary](https://tldrlegal.com/license/mit-license).
 
 Distributed under the MIT license. See [LICENSE](https://github.com/GiacomoLaw/Keylogger/blob/master/LICENSE.txt) for more information.
-
-Giacomo Lawrance – [@GiacomoLaw](https://twitter.com/GiacomoLaw) - [Website](https://giacomolaw.github.io)
-
-Help support the project:
-
-[![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=FWTUUC2C3G9BL&source=url)

